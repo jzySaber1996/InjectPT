@@ -1,0 +1,506 @@
+{
+  "schema_version": "1.0",
+  "template_id": "threat_propagation_chain_template",
+  "language": "zh-CN",
+  "anchors": {
+    "propagation_chain": {
+      "purpose": "描述间接工具指令注入从被攻击工具开始，经过污染输出、信任提升、权限或状态扩散，最终达成影响或被阻断的攻击传播过程。",
+      "start_rule": "每条传播链必须从被攻击的某个工具、节点或能力开始，不得从正常 workflow 的 start node 开始。",
+      "terminal_rule": "传播链必须以安全影响、传播阻断、人工确认、或无可行攻击路径作为结束。",
+      "required_stages": [
+        {
+          "id": "attacked_tool",
+          "required": true,
+          "role": "entry",
+          "description": "被攻击工具或起始节点，说明不可信内容、污染指令或恶意状态进入的位置。"
+        },
+        {
+          "id": "tainted_output",
+          "required": true,
+          "role": "propagation",
+          "description": "工具把不可信内容转成后续可消费输出，形成污染数据或污染上下文。"
+        },
+        {
+          "id": "trust_boundary_crossing",
+          "required": true,
+          "role": "propagation",
+          "description": "污染内容从外部或低信任域进入内部或高信任域，例如成为工具参数、执行计划、后续 prompt 或内部上下文。"
+        },
+        {
+          "id": "instruction_interpretation",
+          "required": false,
+          "role": "propagation",
+          "description": "后续模型、工具或决策节点把污染内容误当作任务指令、约束、参数或策略。"
+        },
+        {
+          "id": "privileged_action",
+          "required": false,
+          "role": "impact",
+          "description": "高影响动作节点，可能触发敏感读写、外部 API、状态改变、记忆写入、文件写入、交易或消息发送。"
+        },
+        {
+          "id": "impact_or_containment",
+          "required": true,
+          "role": "impact|containment",
+          "description": "最终安全影响或控制点，说明威胁达成、传播中断、人工确认或无可行攻击路径。"
+        },
+        {
+          "id": "no_feasible_path",
+          "required": false,
+          "role": "containment",
+          "description": "当工作流中无外部不可信数据源或所有传播门均不成立时，标识无可行攻击路径。"
+        },
+        {
+          "id": "classification_bypass",
+          "required": false,
+          "role": "propagation",
+          "description": "分类器或决策节点被诱导产生错误分类结果，导致污染内容被错误路由到低安全路径。"
+        },
+        {
+          "id": "non_security_intermediate_node",
+          "required": false,
+          "role": "propagation",
+          "description": "仅执行非安全功能（如频率检查、格式转换、缓存命中判断）的中间节点，不检查数据内容，污染数据可无阻碍通过。"
+        },
+        {
+          "id": "misrouted_request",
+          "required": false,
+          "role": "propagation",
+          "description": "污染决策导致请求被错误路由到非预期的工具或端点，实现信任边界跨越或访问控制绕过。"
+        },
+        {
+          "id": "cache_poisoning",
+          "required": false,
+          "role": "propagation",
+          "description": "污染数据被写入缓存、记忆或持久化存储，可跨请求或跨会话传播。"
+        },
+        {
+          "id": "cache_check_node",
+          "required": false,
+          "role": "propagation",
+          "description": "检查缓存是否命中的节点，不校验数据内容，污染数据可无阻碍通过。"
+        },
+        {
+          "id": "retry_amplification",
+          "required": false,
+          "role": "propagation",
+          "description": "重试或迭代节点基于已污染的参数生成改进参数，可能放大攻击效果或引入更危险的指令。"
+        },
+        {
+          "id": "external_reference_node",
+          "required": false,
+          "role": "entry",
+          "description": "读取外部参考文件（如事件库、实施指南、模板文件）的节点，文件内容可能被攻击者篡改，成为间接指令注入的入口。"
+        },
+        {
+          "id": "error_context_leakage",
+          "required": false,
+          "role": "propagation",
+          "description": "执行失败或异常时，错误上下文可能包含敏感信息（如文件路径、数据库内容、内部状态），并通过错误处理节点传播到其他节点或返回给用户。"
+        },
+        {
+          "id": "config_tampering_entry",
+          "required": false,
+          "role": "entry",
+          "description": "攻击者通过篡改配置文件、环境变量或密钥存储，将恶意配置注入工作流，成为间接指令注入的入口。"
+        }
+      ],
+      "edge_requirements": [
+        "每条边必须说明污染内容、指令、权限上下文、状态或敏感信息如何从源节点移动到目标节点。",
+        "边标签应描述传播机制，不应只复述正常业务条件。",
+        "如果传播被阻断，边或目标节点必须说明阻断机制。"
+      ],
+      "impact_dimensions": [
+        "confidentiality",
+        "integrity",
+        "availability",
+        "authority",
+        "business",
+        "propagation_delay",
+        "loop_amplification",
+        "supply_chain",
+        "tool_misuse",
+        "resource_exhaustion",
+        "no_impact",
+        "classification_bypass",
+        "routing_bypass",
+        "cross_request_propagation"
+      ],
+      "mermaid_requirements": [
+        "使用 graph TD。",
+        "每条链的首个节点标签必须以 被攻击工具: 开头。",
+        "节点标签格式建议为 角色: 节点名称 | 威胁状态。",
+        "终点必须表示安全影响、传播阻断、人工确认或无可行攻击路径。",
+        "多条传播链必须使用不同节点前缀，避免 Mermaid 节点 ID 冲突。",
+        "传播节点标签应使用 propagation: 前缀，影响节点标签应使用 impact: 前缀。",
+        "当无可行攻击路径时，终点标签应使用 containment: 前缀并明确标注 无可行攻击路径。",
+        "当无可行攻击路径时，首个节点标签应使用 被攻击工具: 前缀，即使该节点并非实际被攻击，以保持格式一致性。",
+        "当传播链涉及分类器误判时，应在节点标签中标注 分类误判 状态。",
+        "当传播链包含非安全中间节点时，节点标签应使用 propagation: 前缀，并在标签中标注 无内容校验 状态。",
+        "当传播链涉及路由操纵或请求错误路由时，应在节点标签中标注 路由错误 状态。",
+        "当传播链涉及缓存中毒时，应在节点标签中标注 缓存中毒 状态。",
+        "当传播链涉及权限检查结果被篡改时，应在节点标签中标注 权限结果篡改 状态。",
+        "当传播链涉及缓存检查节点时，节点标签应使用 propagation: 前缀，并在标签中标注 无内容校验 状态。",
+        "当传播链涉及重试放大时，节点标签应使用 propagation: 前缀，并在标签中标注 重试放大 状态。"
+      ]
+    },
+    "gate_units": {
+      "purpose": "用形式化逻辑门描述攻击链路达成过程，帮助判断威胁是否能从入口传播到影响。",
+      "operators": {
+        "AND": {
+          "arity": "two_or_more",
+          "meaning": "所有子条件都成立时，该门成立。",
+          "json_form": {
+            "op": "AND",
+            "args": [
+              "gate_or_expression"
+            ]
+          }
+        },
+        "OR": {
+          "arity": "two_or_more",
+          "meaning": "任一子条件成立时，该门成立。",
+          "json_form": {
+            "op": "OR",
+            "args": [
+              "gate_or_expression"
+            ]
+          }
+        },
+        "NOT": {
+          "arity": "one",
+          "meaning": "子条件不成立时，该门成立。",
+          "json_form": {
+            "op": "NOT",
+            "args": [
+              "gate_or_expression"
+            ]
+          }
+        }
+      },
+      "gate_catalog": [
+        {
+          "id": "untrusted_input_gate",
+          "question": "输入或工具输出是否来自网页、文件、邮件、API 响应、搜索结果、日志、记忆、数据库或用户可控内容？",
+          "true_effect": "存在间接指令注入入口。"
+        },
+        {
+          "id": "sanitization_gate",
+          "question": "污染内容是否经过清洗、引用、转义、结构化解析、来源标记或指令/数据分离？",
+          "true_effect": "传播概率降低或被阻断。"
+        },
+        {
+          "id": "trust_promotion_gate",
+          "question": "污染内容是否被提升为可信上下文、系统约束、工具参数、执行计划、后续 prompt 或决策依据？",
+          "true_effect": "威胁可以跨越信任边界继续传播。"
+        },
+        {
+          "id": "permission_gate",
+          "question": "后续节点是否拥有更高权限、更大访问范围、更强执行能力或更敏感的数据视野？",
+          "true_effect": "传播后影响范围扩大。"
+        },
+        {
+          "id": "state_persistence_gate",
+          "question": "污染内容是否会写入记忆、缓存、文件、数据库、配置、日志或长期状态？",
+          "true_effect": "威胁可延迟传播或跨请求传播。"
+        },
+        {
+          "id": "external_effect_gate",
+          "question": "后续节点是否会产生外部可见影响，例如发消息、写文件、调用 API、提交交易、改配置或输出给下游系统？",
+          "true_effect": "威胁可能达成实际影响。"
+        },
+        {
+          "id": "containment_gate",
+          "question": "是否存在人工确认、最小权限、allowlist、schema 校验、来源标记、审计日志、沙箱或失败回滚？",
+          "true_effect": "传播可被阻断或降级。"
+        },
+        {
+          "id": "no_external_source_gate",
+          "question": "工作流中是否完全没有外部不可信数据源（如网页、文件、API响应、邮件等）？",
+          "true_effect": "无间接指令注入入口，攻击不可达。"
+        },
+        {
+          "id": "classification_misjudgment_gate",
+          "question": "分类器或决策节点是否可能被诱导产生错误分类结果，导致污染内容被路由到低安全路径？",
+          "true_effect": "污染内容可能绕过安全控制，通过低安全路径传播。"
+        },
+        {
+          "id": "content_validation_gate",
+          "question": "中间节点是否对数据内容进行安全校验（如输入验证、清洗、指令/数据分离）？",
+          "true_effect": "污染数据可能被阻断或降级，传播概率降低。"
+        },
+        {
+          "id": "routing_manipulation_gate",
+          "question": "污染内容是否能够影响请求路由、工具选择或端点分配决策？",
+          "true_effect": "威胁可通过路由操纵实现信任边界跨越或访问控制绕过。"
+        },
+        {
+          "id": "cache_hit_gate",
+          "question": "后续请求是否可能命中已被污染的缓存或持久化存储？",
+          "true_effect": "威胁可通过缓存命中实现跨请求传播。"
+        },
+        {
+          "id": "permission_result_integrity_gate",
+          "question": "权限检查结果（如allowed/denied）是否可能被篡改、伪造或绕过，例如通过中间人攻击、内部漏洞或未签名响应？",
+          "true_effect": "权限决策结果不可信，威胁可通过伪造的权限通过结果传播到执行节点。"
+        },
+        {
+          "id": "model_integrity_gate",
+          "question": "模型文件、插件、脚本或可执行代码在加载前是否经过完整性校验（如哈希验证、数字签名、来源白名单）？",
+          "true_effect": "恶意模型或代码被阻断，传播概率降低。"
+        }
+      ],
+      "logic_templates": [
+        {
+          "id": "attack_entry_reachable",
+          "description": "攻击入口成立：存在不可信输入，并且没有足够的净化或隔离。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "untrusted_input_gate",
+              {
+                "op": "NOT",
+                "args": [
+                  "sanitization_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "propagation_reachable",
+          "description": "传播成立：污染内容被信任提升，并进入权限、状态持久化或外部效果路径之一。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "trust_promotion_gate",
+              {
+                "op": "OR",
+                "args": [
+                  "permission_gate",
+                  "state_persistence_gate",
+                  "external_effect_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "impact_reached",
+          "description": "影响达成：入口成立、传播成立，并且没有控制门成功阻断。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "attack_entry_reachable",
+              "propagation_reachable",
+              {
+                "op": "NOT",
+                "args": [
+                  "containment_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "contained_path",
+          "description": "传播被控制：入口或传播条件存在，但 containment_gate 成立。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              {
+                "op": "OR",
+                "args": [
+                  "attack_entry_reachable",
+                  "propagation_reachable"
+                ]
+              },
+              "containment_gate"
+            ]
+          }
+        },
+        {
+          "id": "no_feasible_path",
+          "description": "无可行攻击路径：工作流中无外部不可信数据源，或所有传播门均不成立。",
+          "expression": {
+            "op": "OR",
+            "args": [
+              "no_external_source_gate",
+              {
+                "op": "AND",
+                "args": [
+                  {
+                    "op": "NOT",
+                    "args": [
+                      "untrusted_input_gate"
+                    ]
+                  },
+                  {
+                    "op": "NOT",
+                    "args": [
+                      "trust_promotion_gate"
+                    ]
+                  },
+                  {
+                    "op": "NOT",
+                    "args": [
+                      "external_effect_gate"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "classification_bypass_reachable",
+          "description": "分类绕过成立：存在不可信输入，分类器可能被诱导误判，且没有足够的净化或隔离。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "untrusted_input_gate",
+              "classification_misjudgment_gate",
+              {
+                "op": "NOT",
+                "args": [
+                  "sanitization_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "propagation_via_non_security_node",
+          "description": "传播通过非安全中间节点成立：污染内容被信任提升，且中间节点不进行内容校验。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "trust_promotion_gate",
+              {
+                "op": "NOT",
+                "args": [
+                  "content_validation_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "routing_bypass_reachable",
+          "description": "路由绕过成立：存在不可信输入，分类器可能被诱导误判，且路由决策可被污染内容影响。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "untrusted_input_gate",
+              "classification_misjudgment_gate",
+              "routing_manipulation_gate"
+            ]
+          }
+        },
+        {
+          "id": "propagation_via_cache",
+          "description": "传播通过缓存成立：污染数据被持久化，且后续请求可能命中缓存。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "state_persistence_gate",
+              "cache_hit_gate"
+            ]
+          }
+        },
+        {
+          "id": "propagation_via_permission_bypass",
+          "description": "传播通过权限绕过成立：存在不可信输入，权限检查结果被篡改或绕过，且执行节点信任该结果。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "untrusted_input_gate",
+              "permission_result_integrity_gate",
+              "trust_promotion_gate"
+            ]
+          }
+        },
+        {
+          "id": "cross_request_propagation_via_cache",
+          "description": "跨请求传播通过缓存成立：污染数据被持久化，且后续请求命中该缓存，且缓存命中节点不进行内容校验。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "state_persistence_gate",
+              "cache_hit_gate",
+              {
+                "op": "NOT",
+                "args": [
+                  "content_validation_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "cross_request_propagation_via_cache_poisoning",
+          "description": "跨请求传播通过缓存中毒成立：污染数据被持久化，且后续请求命中该缓存，且无有效控制门阻断",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "state_persistence_gate",
+              "cache_hit_gate",
+              {
+                "op": "NOT",
+                "args": [
+                  "containment_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "supply_chain_attack_reachable",
+          "description": "供应链攻击入口成立：存在外部不可信模型或代码源，且未进行完整性校验。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "untrusted_input_gate",
+              {
+                "op": "NOT",
+                "args": [
+                  "model_integrity_gate"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "output_contract": {
+    "starting_attack_point_rule": "starting_attack_point 与 path[0] 必须指向同一个被攻击工具或节点。",
+    "path_rule": "path 必须按攻击传播顺序组织，而不是按正常业务全流程组织。",
+    "edge_rule": "edges 必须解释传播机制。",
+    "impact_rule": "impact.summary 必须说明最终影响或阻断结果。",
+    "gate_reasoning_rule": "每条链应在 path.reason 或 edge.propagation_mechanism 中体现相关 gate_units 判断。",
+    "no_feasible_path_rule": "当无可行攻击路径时，impact.summary 应明确标注无安全影响，且 risk_level 应为 low。",
+    "classification_bypass_rule": "当传播链涉及分类器误判时，应在 path 节点的 threat_state 中明确标注分类误判状态。",
+    "routing_bypass_rule": "当传播链涉及路由操纵或请求错误路由时，应在 path 节点的 threat_state 中明确标注路由错误状态。",
+    "cache_poisoning_rule": "当传播链涉及缓存中毒时，应在 path 节点的 threat_state 中明确标注缓存中毒状态。",
+    "permission_bypass_rule": "当传播链涉及权限检查结果被篡改或绕过时，应在 path 节点的 threat_state 中明确标注权限结果篡改状态。",
+    "cache_check_node_rule": "当传播链涉及缓存检查节点时，应在 path 节点的 threat_state 中明确标注无内容校验状态。"
+  },
+  "evolution_policy": {
+    "allowed_changes": [
+      "增加通用 required_stages",
+      "增加通用 gate_catalog 项",
+      "增加通用 logic_templates",
+      "增加 impact_dimensions",
+      "增加 mermaid_requirements"
+    ],
+    "forbidden_changes": [
+      "删除 anchors.propagation_chain",
+      "删除 anchors.gate_units",
+      "删除 AND/OR/NOT 操作符",
+      "加入具体 skill 的专有名称、公司名、API 名或一次性案例",
+      "加入攻击 payload、绕过步骤或可操作滥用指南"
+    ],
+    "archive_rule": "每次运行开始时确定一个 UTC 时间目录；启用模板演化时，该次运行中每个成功分析的 skill 都必须存入一份模板快照到同一个 template/YYYY-MM-DDTHH-MM-SSZ/ 目录；如果没有有效更新则快照内容与上一轮保持一致；如果运行参数指定 --chain-template-archive-root，则存入同一个 <archive-root>/YYYY-MM-DDTHH-MM-SSZ/ 目录。"
+  }
+}

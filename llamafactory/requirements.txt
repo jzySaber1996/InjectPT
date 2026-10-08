@@ -1,0 +1,11 @@
+llamafactory>=0.9.3
+transformers>=4.51.0
+accelerate>=1.7.0
+bitsandbytes>=0.45.0
+peft>=0.15.0
+trl>=0.9.6
+sentencepiece
+protobuf
+seaborn
+pandas
+z3-solver>=4.12.0

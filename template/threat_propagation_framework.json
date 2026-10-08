@@ -1,0 +1,237 @@
+{
+  "schema_version": "1.0",
+  "framework_id": "threat_propagation_framework",
+  "language": "zh-CN",
+  "summary": "用少量稳定组件描述间接工具指令注入在 agent workflow 中的传播过程，独立于具体 skill。",
+  "core_components": [
+    {
+      "id": "entry",
+      "label": "攻击入口",
+      "required": true,
+      "definition": "不可信内容第一次进入工作流并可能影响后续决策的位置。",
+      "role_hints": [
+        "entry"
+      ],
+      "match_signals": [
+        "被攻击工具",
+        "攻击入口",
+        "不可信输入",
+        "用户请求",
+        "外部内容",
+        "注入"
+      ]
+    },
+    {
+      "id": "carrier",
+      "label": "传播载体",
+      "required": true,
+      "definition": "污染内容被打包成输出、参数、上下文、缓存或状态并继续传递的阶段。",
+      "role_hints": [
+        "propagation"
+      ],
+      "match_signals": [
+        "传播",
+        "输出",
+        "参数",
+        "上下文",
+        "转发",
+        "缓存",
+        "记忆",
+        "状态"
+      ]
+    },
+    {
+      "id": "trust_shift",
+      "label": "信任跨越",
+      "required": true,
+      "definition": "污染内容被后续节点当作更可信的指令、约束、计划或工具输入。",
+      "role_hints": [
+        "propagation"
+      ],
+      "match_signals": [
+        "信任边界",
+        "高信任",
+        "可信上下文",
+        "执行计划",
+        "工具参数",
+        "被当作指令",
+        "提升为可信"
+      ]
+    },
+    {
+      "id": "effect",
+      "label": "影响作用点",
+      "required": false,
+      "definition": "传播开始显化为权限扩大、状态改变、资源消耗或外部副作用的阶段。",
+      "role_hints": [
+        "propagation",
+        "impact"
+      ],
+      "match_signals": [
+        "权限",
+        "写入",
+        "调用",
+        "发送",
+        "修改",
+        "状态改变",
+        "资源消耗",
+        "外部影响"
+      ]
+    },
+    {
+      "id": "containment",
+      "label": "阻断机制",
+      "required": false,
+      "definition": "清洗、人工确认、allowlist、隔离、沙箱或回滚等使传播被阻断或降级的阶段。",
+      "role_hints": [
+        "containment"
+      ],
+      "match_signals": [
+        "阻断",
+        "清洗",
+        "确认",
+        "allowlist",
+        "schema 校验",
+        "沙箱",
+        "回滚",
+        "拒绝"
+      ]
+    },
+    {
+      "id": "terminal",
+      "label": "终局",
+      "required": true,
+      "definition": "链路最终落到安全影响、传播阻断或无可行路径的结论。",
+      "role_hints": [
+        "impact",
+        "containment"
+      ],
+      "match_signals": [
+        "最终影响",
+        "影响达成",
+        "传播中断",
+        "无可行攻击路径",
+        "返回给用户",
+        "终点"
+      ]
+    }
+  ],
+  "decision_gates": [
+    {
+      "id": "untrusted_source",
+      "question": "是否存在来自用户、网页、文件、API、邮件、搜索结果、日志、数据库或记忆的不可信来源？",
+      "true_effect": "传播链具备攻击入口。",
+      "match_signals": [
+        "用户请求",
+        "外部输入",
+        "网页",
+        "文件",
+        "API",
+        "日志",
+        "数据库",
+        "记忆"
+      ]
+    },
+    {
+      "id": "sanitized",
+      "question": "污染内容是否经过清洗、转义、结构化解析、引用隔离或来源标记？",
+      "true_effect": "传播被削弱或阻断。",
+      "match_signals": [
+        "清洗",
+        "转义",
+        "结构化解析",
+        "引用",
+        "来源标记",
+        "过滤"
+      ]
+    },
+    {
+      "id": "trust_promoted",
+      "question": "污染内容是否被提升为可信上下文、工具参数、执行计划或后续 prompt？",
+      "true_effect": "链路完成一次信任跨越。",
+      "match_signals": [
+        "可信上下文",
+        "工具参数",
+        "执行计划",
+        "后续 prompt",
+        "高信任",
+        "信任边界"
+      ]
+    },
+    {
+      "id": "state_or_privilege",
+      "question": "污染内容是否进入更高权限、更长生命周期或更敏感的状态对象？",
+      "true_effect": "影响范围被放大。",
+      "match_signals": [
+        "权限",
+        "allowed=True",
+        "记忆",
+        "缓存",
+        "文件写入",
+        "数据库写入",
+        "配置修改"
+      ]
+    },
+    {
+      "id": "external_effect",
+      "question": "链路是否产生外部可见效果，例如返回结果、调用 API、发消息、提交任务或写文件？",
+      "true_effect": "安全影响开始显化。",
+      "match_signals": [
+        "返回给用户",
+        "调用 API",
+        "发消息",
+        "写文件",
+        "提交",
+        "对外输出"
+      ]
+    },
+    {
+      "id": "contained",
+      "question": "链路是否被人工确认、allowlist、schema 校验、隔离、沙箱或回滚阻断？",
+      "true_effect": "传播链收敛到 containment 终局。",
+      "match_signals": [
+        "人工确认",
+        "allowlist",
+        "schema 校验",
+        "隔离",
+        "沙箱",
+        "回滚",
+        "拒绝"
+      ]
+    }
+  ],
+  "evidence_axes": [
+    {
+      "id": "content_flow",
+      "label": "内容流",
+      "definition": "污染数据或文本怎样从一个节点移动到下一个节点。"
+    },
+    {
+      "id": "instruction_flow",
+      "label": "指令流",
+      "definition": "不可信内容怎样被解释为指令、约束或计划。"
+    },
+    {
+      "id": "authority_flow",
+      "label": "权限流",
+      "definition": "权限、信任级别或可访问范围怎样被放大或误用。"
+    },
+    {
+      "id": "state_flow",
+      "label": "状态流",
+      "definition": "污染内容怎样进入记忆、缓存、文件、数据库或其他持久状态。"
+    },
+    {
+      "id": "effect_flow",
+      "label": "效果流",
+      "definition": "传播怎样落成外部副作用、资源消耗或安全影响。"
+    }
+  ],
+  "output_contract": {
+    "chain_start": "每条传播链必须从真实被攻击工具或节点开始，而不是正常 workflow 的 start node。",
+    "path_order": "path 必须按攻击传播顺序组织，而不是按完整业务路径平铺。",
+    "edge_reasoning": "edges.propagation_mechanism 必须解释污染内容、指令、权限或状态怎样移动。",
+    "terminal_summary": "impact.summary 必须说明最终影响、阻断结果或无可行路径。",
+    "defensive_scope": "输出保持防御性和高层描述，不包含攻击 payload 或操作细节。"
+  }
+}

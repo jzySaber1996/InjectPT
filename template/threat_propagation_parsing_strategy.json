@@ -1,0 +1,262 @@
+{
+  "strategy_id": "threat_propagation_parsing_strategy",
+  "framework_id": "threat_propagation_framework",
+  "version": "1.0",
+  "summary": "定义人类与 DeepSeek 应如何使用 threat_propagation_framework 解析真实 skill 的威胁传播链。",
+  "reading_order": [
+    "先读第一阶段 threat_analysis，定位已知攻击入口和 propagation_candidates。",
+    "再读 framework 的 core_components 与 decision_gates，明确本轮链路需要解释哪些结构。",
+    "然后读 parsed graph，沿真实节点和边选择最短、最可解释的攻击传播路径。",
+    "最后用 output_contract 检查 path、edges 和 impact 是否完整。"
+  ],
+  "steps": [
+    {
+      "id": "find_entry",
+      "title": "定位入口",
+      "instruction": "优先从 threat_analysis.attack_location 选择最早接触不可信内容的工具或节点作为起点。",
+      "target_components": [
+        "entry"
+      ],
+      "required_fields": [
+        "starting_attack_point.reason",
+        "path[*].reason"
+      ]
+    },
+    {
+      "id": "trace_carrier",
+      "title": "跟踪载体",
+      "instruction": "沿 graph 中真实后继边，说明污染内容怎样变成输出、参数、上下文或状态并继续传播。",
+      "target_components": [
+        "carrier"
+      ],
+      "required_fields": [
+        "path[*].threat_state",
+        "edges[*].propagation_mechanism"
+      ]
+    },
+    {
+      "id": "mark_trust_shift",
+      "title": "标注信任跨越",
+      "instruction": "只在污染内容被后续节点当作可信输入、指令、约束或执行计划时，标记 trust_shift。",
+      "target_components": [
+        "trust_shift"
+      ],
+      "required_fields": [
+        "path[*].reason",
+        "edges[*].propagation_mechanism"
+      ]
+    },
+    {
+      "id": "locate_effect_or_containment",
+      "title": "定位影响或阻断",
+      "instruction": "识别链路是在权限/状态/外部副作用处显化，还是被阻断、回滚、人工确认或无路径结束。",
+      "target_components": [
+        "effect",
+        "containment",
+        "terminal"
+      ],
+      "required_fields": [
+        "path[*].reason",
+        "impact.summary"
+      ]
+    },
+    {
+      "id": "close_with_outcome",
+      "title": "收束终局",
+      "instruction": "用 impact.summary 给出防御性终局结论，并确保 path 的最后一个节点与终局一致。",
+      "target_components": [
+        "terminal"
+      ],
+      "required_fields": [
+        "impact.summary"
+      ]
+    }
+  ],
+  "slot_mapping_rules": [
+    {
+      "slot_id": "entry",
+      "fields": [
+        "starting_attack_point.reason",
+        "path[*].reason",
+        "path[*].threat_state"
+      ],
+      "role_hints": [
+        "entry"
+      ],
+      "match_signals": [
+        "攻击入口",
+        "被攻击工具",
+        "不可信输入",
+        "用户请求"
+      ]
+    },
+    {
+      "slot_id": "carrier",
+      "fields": [
+        "path[*].threat_state",
+        "edges[*].propagation_mechanism"
+      ],
+      "role_hints": [
+        "propagation"
+      ],
+      "match_signals": [
+        "传播",
+        "输出",
+        "参数",
+        "上下文",
+        "状态"
+      ]
+    },
+    {
+      "slot_id": "trust_shift",
+      "fields": [
+        "path[*].reason",
+        "edges[*].propagation_mechanism"
+      ],
+      "role_hints": [
+        "propagation"
+      ],
+      "match_signals": [
+        "信任边界",
+        "高信任",
+        "可信上下文",
+        "被当作指令",
+        "提升为可信"
+      ]
+    },
+    {
+      "slot_id": "effect",
+      "fields": [
+        "path[*].reason",
+        "edges[*].propagation_mechanism",
+        "impact.summary"
+      ],
+      "role_hints": [
+        "impact",
+        "propagation"
+      ],
+      "match_signals": [
+        "权限",
+        "写入",
+        "调用",
+        "发送",
+        "外部影响",
+        "资源消耗"
+      ]
+    },
+    {
+      "slot_id": "containment",
+      "fields": [
+        "path[*].reason",
+        "impact.summary"
+      ],
+      "role_hints": [
+        "containment"
+      ],
+      "match_signals": [
+        "阻断",
+        "回滚",
+        "人工确认",
+        "allowlist",
+        "拒绝"
+      ]
+    },
+    {
+      "slot_id": "terminal",
+      "fields": [
+        "impact.summary",
+        "path[*].reason"
+      ],
+      "role_hints": [
+        "impact",
+        "containment"
+      ],
+      "match_signals": [
+        "最终影响",
+        "影响达成",
+        "传播中断",
+        "无可行攻击路径",
+        "返回给用户"
+      ]
+    }
+  ],
+  "gate_mapping_rules": [
+    {
+      "gate_id": "untrusted_source",
+      "fields": [
+        "starting_attack_point.reason",
+        "path[*].reason"
+      ],
+      "match_signals": [
+        "用户请求",
+        "外部输入",
+        "网页",
+        "文件",
+        "API",
+        "日志",
+        "数据库",
+        "记忆"
+      ]
+    },
+    {
+      "gate_id": "trust_promoted",
+      "fields": [
+        "path[*].reason",
+        "edges[*].propagation_mechanism"
+      ],
+      "match_signals": [
+        "可信上下文",
+        "工具参数",
+        "执行计划",
+        "后续 prompt",
+        "信任边界"
+      ]
+    },
+    {
+      "gate_id": "external_effect",
+      "fields": [
+        "edges[*].propagation_mechanism",
+        "impact.summary"
+      ],
+      "match_signals": [
+        "返回给用户",
+        "调用 API",
+        "发消息",
+        "写文件",
+        "提交"
+      ]
+    },
+    {
+      "gate_id": "contained",
+      "fields": [
+        "path[*].reason",
+        "impact.summary"
+      ],
+      "match_signals": [
+        "人工确认",
+        "allowlist",
+        "schema 校验",
+        "隔离",
+        "沙箱",
+        "回滚",
+        "拒绝"
+      ]
+    }
+  ],
+  "quality_checks": [
+    "starting_attack_point 与 path[0] 必须指向同一个真实入口节点。",
+    "每条 edges.propagation_mechanism 都要解释传播的资产、指令、权限或状态。",
+    "如果链路被阻断，path.reason 或 impact.summary 必须点明阻断机制。",
+    "impact.summary 必须与 path 的最后一个节点语义一致。"
+  ],
+  "metric_guidance": [
+    {
+      "metric_id": "framework_path_coverage_score",
+      "improvement_hint": "优先补齐真实传播单元中无法被 core_components、decision_gates 或 evidence_axes 解释的语义缺口。"
+    },
+    {
+      "metric_id": "strategy_parse_coverage_score",
+      "improvement_hint": "优先补全 steps 与 mapping_rules，让 DeepSeek 输出的入口、路径节点、传播边和终局单元都能被稳定解析。"
+    }
+  ]
+}

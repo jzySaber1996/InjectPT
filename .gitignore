@@ -1,0 +1,45 @@
+# Build and Release Folders
+bin-debug/
+bin-release/
+[Oo]bj/
+[Bb]in/
+
+# Other files and folders
+.settings/
+
+# Executables
+*.swf
+*.air
+*.ipa
+*.apk
+
+# Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
+# should NOT be excluded as they contain compiler settings and other important
+# information for Eclipse / Flash Builder.
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local training and optimization artifacts
+artifacts/graph_model_optimization/llamafactory_data/
+artifacts/graph_model_optimization/rolling_dpo/
+artifacts/graph_model_optimization/seaborn_plots/
+artifacts/graph_model_optimization/generated_candidates.jsonl
+artifacts/graph_model_optimization/generation_summary.json
+artifacts/graph_model_optimization/candidate_scores.jsonl
+artifacts/graph_model_optimization/dpo_preferences_cumulative.jsonl
+artifacts/graph_model_optimization/rl_rewards_cumulative.jsonl
+artifacts/graph_model_optimization/rolling_dpo_history.json
+artifacts/graph_model_optimization/rolling_dpo_history.jsonl
+artifacts/graph_model_optimization/rolling_dpo_history.md
+artifacts/graph_model_optimization/rolling_dpo_summary.json
+artifacts/graph_model_optimization/pipeline_summary.json
+artifacts/graph_model_optimization/score_summary.json
+artifacts/graph_model_optimization/preference_summary.json
+artifacts/graph_model_optimization/tmp_candidate_graphs/
+artifacts/llamafactory/
+
+# Generated metrics and plots
+*.png
+*.svg
+*.jsonl

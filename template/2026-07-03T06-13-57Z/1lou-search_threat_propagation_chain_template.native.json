@@ -1,0 +1,416 @@
+{
+  "schema_version": "1.0",
+  "template_id": "threat_propagation_chain_template",
+  "language": "zh-CN",
+  "anchors": {
+    "propagation_chain": {
+      "purpose": "描述间接工具指令注入从被攻击工具开始，经过污染输出、信任提升、权限或状态扩散，最终达成影响或被阻断的攻击传播过程。",
+      "start_rule": "每条传播链必须从被攻击的某个工具、节点或能力开始，不得从正常 workflow 的 start node 开始。",
+      "terminal_rule": "传播链必须以安全影响、传播阻断、人工确认、或无可行攻击路径作为结束。",
+      "required_stages": [
+        {
+          "id": "attacked_tool",
+          "required": true,
+          "role": "entry",
+          "description": "被攻击工具或起始节点，说明不可信内容、污染指令或恶意状态进入的位置。"
+        },
+        {
+          "id": "tainted_output",
+          "required": true,
+          "role": "propagation",
+          "description": "工具输出可能包含污染数据或上下文，形成后续传播的污染源。"
+        },
+        {
+          "id": "trust_boundary_crossing",
+          "required": true,
+          "role": "propagation",
+          "description": "污染内容从外部或低信任域进入内部或高信任域，例如成为工具参数、执行计划、后续 prompt 或内部上下文。"
+        },
+        {
+          "id": "privileged_action",
+          "required": false,
+          "role": "impact",
+          "description": "高影响动作节点，可能触发敏感读写、外部 API、状态改变、记忆写入、文件写入、交易或消息发送。"
+        },
+        {
+          "id": "impact_or_containment",
+          "required": true,
+          "role": "impact|containment",
+          "description": "最终安全影响或控制点，说明威胁达成、传播中断、人工确认或无可行攻击路径。"
+        },
+        {
+          "id": "cache_pollution",
+          "required": false,
+          "role": "propagation",
+          "description": "污染内容被写入缓存、记忆、数据库或文件系统，可被后续请求或节点读取，形成持久化污染源。"
+        },
+        {
+          "id": "loop_back_propagation",
+          "required": false,
+          "role": "propagation",
+          "description": "污染内容通过循环反馈路径（如调试修复、重试、迭代优化）重新进入上游节点，形成传播循环。"
+        },
+        {
+          "id": "user_instruction_interpretation",
+          "required": false,
+          "role": "impact",
+          "description": "污染内容被用户或下游系统解释为可执行指令、操作指南或决策依据，可能触发非预期行为。"
+        },
+        {
+          "id": "no_feasible_path",
+          "required": false,
+          "role": "containment",
+          "description": "明确表示无可行攻击路径的链，用于替代对 required=true 阶段的不必要说明。"
+        },
+        {
+          "id": "data_to_instruction_conversion",
+          "required": false,
+          "role": "propagation",
+          "description": "污染内容从数据域嵌入到指令域，可能被解释为可执行指令。"
+        },
+        {
+          "id": "internal_entry",
+          "required": false,
+          "role": "entry",
+          "description": "攻击入口为内部节点（如解析器、格式化器、缓存读取节点），说明污染数据从上游节点进入该节点，该节点本身并非外部不可信源。"
+        },
+        {
+          "id": "dom_to_data_transfer",
+          "required": false,
+          "role": "propagation",
+          "description": "污染内容从页面DOM元素被提取并转移到结构化数据（如列表、字典）中，形成污染数据。"
+        },
+        {
+          "id": "template_embedding",
+          "required": false,
+          "role": "propagation",
+          "description": "污染内容被嵌入到报告模板、格式化字符串、消息模板或输出文档中，可能被下游系统或用户解释为有效内容或指令。"
+        },
+        {
+          "id": "attack_entry_node",
+          "required": true,
+          "role": "entry",
+          "description": "被攻击的工具、节点或能力，说明攻击入口的具体位置。"
+        },
+        {
+          "id": "external_ui_element_tampering",
+          "required": false,
+          "role": "entry",
+          "description": "攻击入口为外部网页中的UI元素（如按钮文本、复选框属性、链接）被篡改，Agent依赖该元素文本或属性进行定位和操作，形成间接指令注入入口。"
+        },
+        {
+          "id": "external_api_response_tampering",
+          "required": false,
+          "role": "entry",
+          "description": "攻击入口为外部API响应被篡改，Agent依赖该响应数据进行后续操作，形成间接指令注入或数据污染入口。"
+        },
+        {
+          "id": "external_file_tampering",
+          "required": false,
+          "role": "entry",
+          "description": "攻击入口为外部静态文件（如参考文档、配置文件、模板文件）被篡改，Agent加载该文件内容作为输入或上下文，形成间接指令注入入口。"
+        },
+        {
+          "id": "display_only_output",
+          "required": false,
+          "role": "impact",
+          "description": "污染数据仅作为展示内容输出给用户或下游系统，未进入指令域、未触发敏感操作或状态变更，影响仅限于展示内容被篡改。"
+        },
+        {
+          "id": "multi_source_convergence",
+          "required": false,
+          "role": "propagation",
+          "description": "多个上游污染源的数据在同一节点汇聚，该节点可能整合来自不同路径的污染内容，形成更复杂的威胁传播或放大影响。"
+        },
+        {
+          "id": "multi_entry_convergence",
+          "required": false,
+          "role": "propagation",
+          "description": "多个攻击入口汇聚到同一节点，该节点可能从不同路径接收污染内容，形成多源威胁汇聚点。"
+        },
+        {
+          "id": "user_confirmation_propagation",
+          "required": false,
+          "role": "propagation",
+          "description": "污染内容经过用户确认节点，用户确认行为可能使污染内容继续传播，用户拒绝则阻断传播。"
+        },
+        {
+          "id": "user_confirmation_stage",
+          "required": false,
+          "role": "propagation",
+          "description": "污染内容经过用户确认节点，用户确认行为可能使污染内容继续传播，用户拒绝则阻断传播。"
+        }
+      ],
+      "edge_requirements": [
+        "每条边必须说明污染内容、指令、权限上下文、状态或敏感信息如何从源节点移动到目标节点。",
+        "边标签应描述传播机制，不应只复述正常业务条件。",
+        "如果传播被阻断，边或目标节点必须说明阻断机制。"
+      ],
+      "impact_dimensions": [
+        "confidentiality",
+        "integrity",
+        "availability",
+        "authority",
+        "business",
+        "propagation_delay",
+        "loop_amplification",
+        "supply_chain",
+        "tool_misuse",
+        "resource_exhaustion"
+      ],
+      "mermaid_requirements": [
+        "使用 graph TD。",
+        "节点标签格式为 role: node_name | threat_state，role 必须为 entry/propagation/impact/containment，首个节点必须使用 entry 前缀。",
+        "终点必须表示安全影响、传播阻断、人工确认或无可行攻击路径。",
+        "多条传播链必须使用不同节点前缀，避免 Mermaid 节点 ID 冲突。",
+        "传播节点标签应使用 propagation: 前缀，影响节点标签应使用 impact: 前缀。",
+        "节点标签格式示例：entry: node_name | 威胁状态描述。",
+        "首个节点标签必须使用 entry: 前缀，不得使用中文自定义前缀。",
+        "节点标签必须严格使用 role: 前缀（entry/propagation/impact/containment），不得使用自定义中文前缀。",
+        "节点标签必须严格使用 role: 前缀（entry/propagation/impact/containment），不得使用中文自定义前缀。",
+        "所有被攻击工具节点（attacked_tool）必须使用 entry: 前缀，不得使用'被攻击工具:'等自定义中文前缀。",
+        "首个节点（attacked_tool）必须使用 entry: 前缀，不得使用'被攻击工具:'等自定义中文前缀。",
+        "传播节点必须使用 propagation: 前缀，影响节点必须使用 impact: 前缀，不得使用自定义中文前缀如'被攻击工具:'。"
+      ]
+    },
+    "gate_units": {
+      "purpose": "用形式化逻辑门描述攻击链路达成过程，帮助判断威胁是否能从入口传播到影响。",
+      "operators": {
+        "AND": {
+          "arity": "two_or_more",
+          "meaning": "所有子条件都成立时，该门成立。",
+          "json_form": {
+            "op": "AND",
+            "args": [
+              "gate_or_expression"
+            ]
+          }
+        },
+        "OR": {
+          "arity": "two_or_more",
+          "meaning": "任一子条件成立时，该门成立。",
+          "json_form": {
+            "op": "OR",
+            "args": [
+              "gate_or_expression"
+            ]
+          }
+        },
+        "NOT": {
+          "arity": "one",
+          "meaning": "子条件不成立时，该门成立。",
+          "json_form": {
+            "op": "NOT",
+            "args": [
+              "gate_or_expression"
+            ]
+          }
+        }
+      },
+      "gate_catalog": [
+        {
+          "id": "untrusted_input_gate",
+          "question": "输入或工具输出是否来自网页、文件、邮件、API 响应、搜索结果、日志、记忆、数据库或用户可控内容？",
+          "true_effect": "存在间接指令注入入口。"
+        },
+        {
+          "id": "sanitization_gate",
+          "question": "污染内容是否经过清洗、引用、转义、结构化解析、来源标记或指令/数据分离？",
+          "true_effect": "传播概率降低或被阻断。"
+        },
+        {
+          "id": "trust_promotion_gate",
+          "question": "污染内容是否被提升为可信上下文、系统约束、工具参数、执行计划、后续 prompt 或决策依据？",
+          "true_effect": "威胁可以跨越信任边界继续传播。"
+        },
+        {
+          "id": "permission_gate",
+          "question": "后续节点是否拥有更高权限、更大访问范围、更强执行能力或更敏感的数据视野？",
+          "true_effect": "传播后影响范围扩大。"
+        },
+        {
+          "id": "state_persistence_gate",
+          "question": "污染内容是否会写入记忆、缓存、文件、数据库、配置、日志或长期状态？",
+          "true_effect": "威胁可延迟传播或跨请求传播。"
+        },
+        {
+          "id": "external_effect_gate",
+          "question": "后续节点是否会产生外部可见影响，例如发消息、写文件、调用 API、提交交易、改配置或输出给下游系统？",
+          "true_effect": "威胁可能达成实际影响。"
+        },
+        {
+          "id": "containment_gate",
+          "question": "是否存在人工确认、最小权限、allowlist、schema 校验、来源标记、审计日志、沙箱或失败回滚？",
+          "true_effect": "传播可被阻断或降级。"
+        },
+        {
+          "id": "conditional_branch_gate",
+          "question": "传播路径是否存在条件分支？",
+          "true_effect": "污染内容可能沿不同分支传播。"
+        },
+        {
+          "id": "data_to_instruction_gate",
+          "question": "污染内容是否从数据域（如参数、字段、变量）被直接嵌入到指令域（如shell命令、SQL语句、代码片段、模板字符串）中执行？",
+          "true_effect": "威胁从数据污染升级为指令注入，传播风险显著增加。"
+        },
+        {
+          "id": "internal_entry_gate",
+          "question": "攻击入口是否为内部节点（非外部不可信输入节点）？",
+          "true_effect": "污染数据从上游节点进入，攻击入口为内部节点，需关注上游节点是否已被污染。"
+        },
+        {
+          "id": "user_instruction_interpretation_gate",
+          "question": "污染内容是否被用户或下游系统解释为可执行指令、操作指南或决策依据？",
+          "true_effect": "威胁可能通过用户或下游系统的执行行为达成实际影响。"
+        },
+        {
+          "id": "multi_entry_convergence_gate",
+          "question": "是否存在多个攻击入口汇聚到同一节点的情况？",
+          "true_effect": "威胁可能从多个路径汇聚到同一节点，增加传播复杂性和影响范围。"
+        },
+        {
+          "id": "user_confirmation_gate",
+          "question": "污染内容是否经过用户确认节点，且用户确认行为使污染内容继续传播？",
+          "true_effect": "污染内容通过用户确认继续传播，用户拒绝则阻断传播。"
+        }
+      ],
+      "logic_templates": [
+        {
+          "id": "attack_entry_reachable",
+          "description": "攻击入口成立：存在不可信输入，并且没有足够的净化或隔离。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "untrusted_input_gate",
+              {
+                "op": "NOT",
+                "args": [
+                  "sanitization_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "propagation_reachable",
+          "description": "传播成立：污染内容被信任提升，并进入权限、状态持久化或外部效果路径之一。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "trust_promotion_gate",
+              {
+                "op": "OR",
+                "args": [
+                  "permission_gate",
+                  "state_persistence_gate",
+                  "external_effect_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "impact_reached",
+          "description": "影响达成：入口成立、传播成立，并且没有控制门成功阻断。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "attack_entry_reachable",
+              "propagation_reachable",
+              {
+                "op": "NOT",
+                "args": [
+                  "containment_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "contained_path",
+          "description": "传播被控制：入口或传播条件存在，但 containment_gate 成立。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              {
+                "op": "OR",
+                "args": [
+                  "attack_entry_reachable",
+                  "propagation_reachable"
+                ]
+              },
+              "containment_gate"
+            ]
+          }
+        },
+        {
+          "id": "no_feasible_attack_path",
+          "description": "无可行攻击路径：攻击入口不成立，且所有相关传播门均不适用或未触发。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              {
+                "op": "NOT",
+                "args": [
+                  "untrusted_input_gate"
+                ]
+              },
+              {
+                "op": "NOT",
+                "args": [
+                  "trust_promotion_gate"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "data_to_instruction_propagation",
+          "description": "数据到指令传播成立：污染内容被信任提升，并且从数据域嵌入到指令域执行，形成指令注入传播。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "trust_promotion_gate",
+              "data_to_instruction_gate"
+            ]
+          }
+        },
+        {
+          "id": "data_to_instruction_impact",
+          "description": "数据到指令传播且外部效果成立：污染内容被信任提升，从数据域嵌入指令域执行，并产生外部可见影响。",
+          "expression": {
+            "op": "AND",
+            "args": [
+              "data_to_instruction_propagation",
+              "external_effect_gate"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "output_contract": {
+    "starting_attack_point_rule": "starting_attack_point 与 path[0] 必须指向同一个被攻击工具或节点。",
+    "path_rule": "path 必须按攻击传播顺序组织，而不是按正常业务全流程组织。",
+    "edge_rule": "edges 必须解释传播机制。",
+    "impact_rule": "impact.summary 必须说明最终影响或阻断结果。",
+    "gate_reasoning_rule": "每条链应在 path.reason 或 edge.propagation_mechanism 中体现相关 gate_units 判断。"
+  },
+  "evolution_policy": {
+    "allowed_changes": [
+      "增加通用 required_stages",
+      "增加通用 gate_catalog 项",
+      "增加通用 logic_templates",
+      "增加 impact_dimensions",
+      "增加 mermaid_requirements"
+    ],
+    "forbidden_changes": [
+      "删除 anchors.propagation_chain",
+      "删除 anchors.gate_units",
+      "删除 AND/OR/NOT 操作符",
+      "加入具体 skill 的专有名称、公司名、API 名或一次性案例",
+      "加入攻击 payload、绕过步骤或可操作滥用指南"
+    ],
+    "archive_rule": "每次模板被更新，都必须把更新后的 JSON 存入 template/YYYY-MM-DD/ 目录。"
+  }
+}

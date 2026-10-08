@@ -1,0 +1,37 @@
+model_name_or_path: /root/JZY/MCP_Threat_Modeling/Qwen2.5-7B
+stage: dpo
+do_train: true
+finetuning_type: lora
+template: qwen
+quantization_bit: 4
+flash_attn: auto
+cutoff_len: 1536
+dataset_dir: /root/JZY/agent-threat-mining/artifacts/graph_model_optimization/llamafactory_data
+dataset: skill_graph_dpo
+output_dir: /root/JZY/agent-threat-mining/artifacts/llamafactory/qwen25_mermaid_dpo
+overwrite_output_dir: true
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
+learning_rate: 5.0e-5
+num_train_epochs: 2.0
+lr_scheduler_type: cosine
+logging_steps: 10
+save_steps: 50
+plot_loss: true
+bf16: true
+dataloader_num_workers: 4
+lora_rank: 16
+lora_alpha: 32
+lora_dropout: 0.05
+pref_beta: 0.1
+pref_loss: sigmoid
+report_to: none
+adapter_name_or_path: /root/JZY/agent-threat-mining/artifacts/llamafactory/qwen25_mermaid_sft
+# eval_dataset: skill_graph_dpo
+val_size: 0.0
+eval_strategy: "no"
+# eval_steps: 20
+save_strategy: steps
+save_total_limit: 3
+include_num_input_tokens_seen: true
+warmup_steps: 10
