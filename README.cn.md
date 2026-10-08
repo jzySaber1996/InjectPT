@@ -1,8 +1,8 @@
-# AgentThreatMining
+# InjectPT
 
 #### 介绍
 
-AgentThreatMining 用于整理、标准化和分析 Agent skill 数据，并基于 `SKILL.md` 生成可用于威胁挖掘和流程分析的中间表示。
+InjectPT 用于整理、标准化和分析 Agent skill 数据，并基于 `SKILL.md` 生成可用于威胁挖掘和流程分析的中间表示。
 
 当前仓库已经支持两类核心能力：
 

@@ -1,8 +1,8 @@
-# AgentThreatMining
+# InjectPT
 
 #### Description
 
-AgentThreatMining is used to organize, normalize, and analyze Agent skill data, and to generate intermediate workflow representations from `SKILL.md` files for threat mining and process analysis.
+InjectPT is used to organize, normalize, and analyze Agent skill data, and to generate intermediate workflow representations from `SKILL.md` files for threat mining and process analysis.
 
 The repository currently provides two main capabilities:
 
