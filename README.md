@@ -1,52 +1,52 @@
 # AgentThreatMining
 
-#### 介绍
+#### Description
 
-AgentThreatMining 用于整理、标准化和分析 Agent skill 数据，并基于 `SKILL.md` 生成可用于威胁挖掘和流程分析的中间表示。
+AgentThreatMining is used to organize, normalize, and analyze Agent skill data, and to generate intermediate workflow representations from `SKILL.md` files for threat mining and process analysis.
 
-当前仓库已经支持两类核心能力：
+The repository currently provides two main capabilities:
 
-1. 将原始 skill 数据整理为外部工具可稳定访问的标准化目录
-2. 基于 DeepSeek + Prompt 读取 skill 文档，生成查询型 Mermaid 任务流程图
+1. Export raw skill data into a normalized directory that external tools can consume reliably
+2. Use DeepSeek + prompts to read skill documents and generate query-oriented Mermaid workflow graphs
 
-#### 目录结构
+#### Repository Layout
 
-- `data/hot100-300/`：原始数据
-- `data/inner_representation/`：标准化后的可消费数据目录
-- `scripts/export_tool_ready_data.py`：原始数据导出为标准化目录
-- `scripts/generate_skill_graphs_with_deepseek.py`：调用 DeepSeek 生成 `graph_wo_check.md`
-- `prompts/skill_workflow_mermaid_prompt.md`：流程图生成提示词模板
-- `docs/deepseek_graph_generation.md`：DeepSeek 流程图生成补充说明
+- `data/hot100-300/`: raw dataset
+- `data/inner_representation/`: normalized, tool-ready dataset
+- `scripts/export_tool_ready_data.py`: exports raw data into the normalized layout
+- `scripts/generate_skill_graphs_with_deepseek.py`: calls DeepSeek and writes `graph_wo_check.md`
+- `prompts/skill_workflow_mermaid_prompt.md`: prompt template for workflow graph generation
+- `docs/deepseek_graph_generation.md`: additional documentation for DeepSeek graph generation
 
-#### 环境要求
+#### Requirements
 
 1. Python 3.10+
-2. 安装 `requests`
-3. 若使用 DeepSeek 生成功能，需要设置环境变量 `DEEPSEEK_API_KEY`
+2. `requests` installed
+3. `DEEPSEEK_API_KEY` set if you want to use DeepSeek graph generation
 
-示例：
+Example:
 
 ```bash
 pip install requests
 export DEEPSEEK_API_KEY=your_api_key
 ```
 
-#### 使用说明
+#### Usage
 
-1. 导出标准化数据目录
+1. Export the normalized dataset
 
 ```bash
 python3 scripts/export_tool_ready_data.py
 ```
 
-执行后会生成：
+This generates:
 
 - `data/inner_representation/index.json`
 - `data/inner_representation/by_slug.json`
 - `data/inner_representation/stats.json`
 - `data/inner_representation/<skill>/...`
 
-其中每个 skill 目录包含统一文件名，例如：
+Each skill directory uses stable filenames such as:
 
 - `SKILL.md`
 - `_meta.json`
@@ -57,48 +57,48 @@ python3 scripts/export_tool_ready_data.py
 - `regex.json`
 - `manifest.json`
 
-2. 针对单个 skill 生成查询流程图
+2. Generate a query workflow graph for a single skill
 
 ```bash
 python3 scripts/generate_skill_graphs_with_deepseek.py --skill peekaboo --force
 ```
 
-3. 批量生成查询流程图
+3. Generate query workflow graphs in batch
 
 ```bash
 python3 scripts/generate_skill_graphs_with_deepseek.py --force
 ```
 
-4. 仅预览将被处理的 skill，不调用 DeepSeek
+4. Preview matched skills without calling DeepSeek
 
 ```bash
 python3 scripts/generate_skill_graphs_with_deepseek.py --skill 1password --dry-run
 ```
 
-#### 流程图生成规则
+#### Graph Generation Rules
 
-生成脚本会读取 `data/inner_representation/<skill>/SKILL.md` 和 `manifest.json`，并要求模型：
+The generation script reads `data/inner_representation/<skill>/SKILL.md` and `manifest.json`, then instructs the model to:
 
-1. 将工具执行、命令执行、数据读取、API 调用统一抽象为工作流节点
-2. 为每个节点输出固定字段：`name`、`task`、`input`、`output`、`constraint`
-3. `name` 使用小写 snake_case；若 skill 中出现原始脚本/命令名，优先规范化后直接使用
-4. 仅围绕查询、读取、检索、分析路径构造流程
-5. 输出 `graph TD` Mermaid 状态机，并保证全图只有一个开始节点和一个完成节点
-6. 包含条件判断、失败分支、必要时的回滚或重试逻辑
+1. Collapse tool execution, command execution, data reads, and API calls into workflow nodes
+2. Emit fixed node fields for every node: `name`, `task`, `input`, `output`, and `constraint`
+3. Use lowercase snake_case for `name`; if the skill exposes an original script or command name, normalize and reuse it
+4. Build the workflow only around query, read, retrieval, and analysis paths
+5. Output a `graph TD` Mermaid state-machine-style workflow with exactly one start node and one finish node
+6. Include branch conditions, failure paths, and rollback or retry logic when needed
 
-生成结果默认写入：
+The generated result is written to:
 
 - `data/inner_representation/<skill>/graph_wo_check.md`
 
-#### 说明
+#### Notes
 
-- 标准化目录用于给外部工具提供稳定路径，不建议直接依赖原始 `hot100-300/` 的目录结构
-- DeepSeek 输出后脚本会做一次 Mermaid 结构校验；若第一次输出不合格，会自动进行一次修复重试
-- 若某个 skill 已存在 `graph_wo_check.md`，默认跳过；加 `--force` 会覆盖
+- External tools should consume the normalized dataset instead of depending on the raw `hot100-300/` tree
+- After DeepSeek returns a graph, the script validates the Mermaid structure; if the first output is invalid, it performs one automatic repair retry
+- If `graph_wo_check.md` already exists for a skill, the script skips it by default; use `--force` to overwrite
 
-#### 参与贡献
+#### Contribution
 
-1. Fork 本仓库
-2. 新建特性分支
-3. 提交修改
-4. 发起 Pull Request
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Open a Pull Request
